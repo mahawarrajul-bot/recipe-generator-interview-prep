@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe Generator viva prep</title>
+<style>
+:root {
+  --bg: #f0fdf4; --surface: #ffffff; --surface2: #ecfdf3; --ink: #12261a; --muted: #46594d; --line: #cfe8d8;
+  --brand: #15803d; --accent: #1d4ed8; --star: #9a4400; --code: #eaf5ee; --ok: #0b7a45; --warn: #8a5300;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0c1a12; --surface: #14281c; --surface2: #1b3526; --ink: #eefaf2; --muted: #b5cfbf; --line: #2c4a39;
+    --brand: #6ee79a; --accent: #7aa2ff; --star: #ffc566; --code: #1b3526; --ok: #5ee2a0; --warn: #ffc566; }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 920px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.9rem; margin: .4em 0 .1em; }
+h2 { font-size: 1.4rem; margin: 2.2em 0 .5em; padding-top: .4em; border-top: 3px solid var(--line); }
+h3 { font-size: 1.1rem; margin: 1.5em 0 .4em; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font: .88em/1.4 ui-monospace, Consolas, monospace; background: var(--code); padding: .1em .35em; border-radius: 6px; overflow-wrap: anywhere; }
+pre { background: var(--code); padding: 12px; border-radius: 10px; overflow-x: auto; font: .85em/1.45 ui-monospace, Consolas, monospace; }
+.lede { color: var(--muted); font-size: 1.05rem; }
+.card { background: var(--surface); border: 2px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 12px 0; }
+.note { background: var(--surface2); border-left: 4px solid var(--brand); border-radius: 10px; padding: 10px 14px; margin: 12px 0; }
+.warnbox { border-left-color: var(--warn); }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: .93rem; }
+th, td { text-align: left; vertical-align: top; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+th { background: var(--surface2); }
+.tablewrap { overflow-x: auto; }
+nav.toc { background: var(--surface); border: 2px solid var(--line); border-radius: 16px; padding: 10px 16px; }
+nav.toc ol { margin: .3em 0; padding-left: 1.4em; }
+details { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; margin: 8px 0; }
+details > summary { cursor: pointer; padding: 10px 14px; font-weight: 700; min-height: 44px; }
+details[open] > summary { border-bottom: 1px solid var(--line); }
+details .body { padding: 8px 14px 12px; }
+details .follow { color: var(--muted); border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 8px; }
+.star { color: var(--star); font-weight: 900; }
+.tools { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tools input[type=search] { flex: 1 1 220px; min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; }
+.tools label, .tools button { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.count { color: var(--muted); font-size: .9rem; }
+.diagram { overflow-x: auto; }
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.flow span.b { background: var(--surface2); border: 2px solid var(--brand); border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: .9rem; }
+.flow span.a { color: var(--accent); font-weight: 900; }
+footer { color: var(--muted); font-size: .85rem; margin: 3em 0 1em; }
+</style>
+</head>
+<body>
+<main>
+<h1>Recipe Generator: viva prep</h1>
+<p class="lede">Everything here is taken from the project's code, <code>README.md</code>, <code>specs/</code> and the committed evaluation reports in
+<code>eval/reports/</code> (runs of 23 Oct 2026). Numbers are the measured values in those reports. Where an answer is about <em>your</em> role,
+adapt the wording to what you actually did.</p>
+
+<nav class="toc" aria-label="Contents">
+<strong>Contents</strong>
+<ol>
+<li><a href="#pitch">2-minute pitch</a></li>
+<li><a href="#arch">Architecture and request flow</a></li>
+<li><a href="#modules">How each module works</a></li>
+<li><a href="#stack">Tech-stack decisions</a></li>
+<li><a href="#sdd">The spec-driven process</a></li>
+<li><a href="#testing">Testing</a></li>
+<li><a href="#eval">Evaluation and results</a></li>
+<li><a href="#limits">Limitations and next steps</a></li>
+<li><a href="#demo">Live demo script</a></li>
+<li><a href="#glossary">Glossary</a></li>
+<li><a href="#qs">Question bank</a> (★ = most likely)</li>
+</ol>
+</nav>
+
+<h2 id="pitch">1. The 2-minute pitch</h2>
+<div class="card">
+<p><strong>Problem.</strong> LLMs write good-sounding recipes but cannot be trusted on hard constraints. A "vegan" recipe may contain honey or butter, a "30 minute"
+recipe may take an hour, and for allergies a wrong answer can hurt someone.</p>
+<p><strong>What it does.</strong> You type what is in your fridge in any format (<code>2 eggs</code>, <code>eggs (3)</code>, <code>some onions</code>), choose diets and a
+time limit, and get recipes with a shopping list of what you are missing.</p>
+<p><strong>Core idea.</strong> <em>The LLM proposes, deterministic code disposes.</em> Claude writes the recipes. Plain Python checks every one for diets, excluded
+ingredients, time and structure. A failing recipe goes back to the model with the checker's own messages for repair (up to 2 times). If it still fails it is
+discarded and shown under "Rejected recipes". The model's own claims are never shown as badges.</p>
+<p><strong>Proof.</strong> Two full evaluation runs (50 queries × 2 models, 100 pairs each). The repair loop fixed 95 to 98% of recipes that failed the first check, and
+<strong>none of the 481 delivered recipes broke a rule</strong>.</p>
+<p class="note warnbox"><strong>Honest caveat to say yourself:</strong> the results use a 50-recipe hand-written sample dataset, not Food.com, and measure conformance to
+<em>this project's checker</em>, not real-world safety. It is not medical advice.</p>
+</div>
+
+<h2 id="arch">2. Architecture and request flow</h2>
+<div class="card">
+<div class="flow">
+<span class="b">Fridge text</span><span class="a">→</span>
+<span class="b">Normalizer</span><span class="a">→</span>
+<span class="b">Grounding (BM25 retrieval)</span><span class="a">→</span>
+<span class="b">Claude (tool use)</span><span class="a">→</span>
+<span class="b">Checker</span><span class="a">→</span>
+<span class="b">Repair loop ≤ 2</span><span class="a">→</span>
+<span class="b">Shopping gap</span><span class="a">→</span>
+<span class="b">Streamlit UI</span>
+</div>
+<ol>
+<li><strong>Normalize</strong> the messy pantry text into canonical ingredients with quantities and units.</li>
+<li><strong>Ground</strong>: find real recipes from the dataset with similar ingredients and offer them to the model as inspiration only.</li>
+<li><strong>Generate</strong>: ask Claude for N recipes, structured output via tool use with a JSON schema made from the <code>Recipe</code> pydantic model.</li>
+<li><strong>Check</strong> every raw recipe. Any violation triggers a repair prompt containing the checker's messages.</li>
+<li><strong>Discard</strong> recipes that still fail. Never pad the result with unverified recipes.</li>
+<li><strong>Shopping gap</strong> is computed in Python (recipe minus pantry), never by the model.</li>
+<li><strong>Render</strong>: scaling of servings is pure Python, so the slider changes amounts with no new model call.</li>
+</ol>
+<p>Only step 3 (and repairs) touch the network. Normalizer, checker, retrieval and shopping gap are pure functions (constitution rule C-2).</p>
+</div>
+
+<h2 id="modules">3. How each module works</h2>
+<div class="tablewrap"><table>
+<tr><th>Module</th><th>Job</th><th>Key idea</th></tr>
+<tr><td><code>normalize/</code></td><td>Split, parse quantity and unit, strip filler words, map synonyms to canonical names, merge duplicates.</td><td>Handles "2 eggs", "eggs (3)", "some onions", "500g chicken". Unknown items are flagged, not guessed.</td></tr>
+<tr><td><code>taxonomy/</code></td><td>Built-in ingredient database: tags (meat, dairy, egg, gluten, tree_nut...) and category per ingredient, plus synonyms and staples.</td><td>Data-driven, so policy is readable and editable in JSON.</td></tr>
+<tr><td><code>grounding/</code></td><td>Load Food.com-format CSV, build an inverted index, BM25-style scoring over normalized ingredient names.</td><td>Simple and explainable. No vector DB in v1.</td></tr>
+<tr><td><code>generation/</code></td><td>Prompts, Anthropic client behind an <code>LLMClient</code> protocol, the generate → check → repair pipeline, trace.</td><td>Model never decides pass/fail. Duplicate detection: more than 80% shared canonical ingredients.</td></tr>
+<tr><td><code>checker/</code></td><td>Structure, ingredient tags vs diets, excluded ingredients, text scan for unlisted forbidden words, timing.</td><td>Rule tables are data in <code>rules.py</code>. Allergen diets <strong>fail closed</strong>: an unknown ingredient counts as unverifiable.</td></tr>
+<tr><td><code>shopping.py</code>, <code>render.py</code></td><td>Compute missing ingredients, scale servings, expand <code>{id}</code> references in step text.</td><td>Deterministic, so slider and combined shopping list update instantly.</td></tr>
+<tr><td><code>eval/</code></td><td>Run the frozen 50 queries on each model, measure violation rates before and after repair with 95% intervals, write report and audit sheet.</td><td>Needs <code>--yes</code> to spend money. <code>--dry-run</code> shows the plan.</td></tr>
+<tr><td><code>app/</code></td><td>Streamlit UI: understood-ingredients chips, status stages, recipe cards, rejected panel, pipeline trace.</td><td>Binds to localhost only, because anyone reaching it could spend API credit.</td></tr>
+</table></div>
+
+<h3>Diet rules (from <code>checker/rules.py</code>)</h3>
+<ul>
+<li>Vegetarian forbids meat, red meat, poultry, pork, fish, shellfish, gelatin.</li>
+<li>Vegan forbids all of that plus dairy, egg, honey and animal-derived items.</li>
+<li>Pescatarian forbids meat and gelatin. Gluten-, dairy-, nut-, egg-, soy- and shellfish-free forbid their tags. Diets combine as a union.</li>
+<li>Allergen diets (the six "-free" ones) fail closed. Lifestyle diets (vegetarian, vegan, pescatarian) are more lenient on unknowns.</li>
+</ul>
+
+<h2 id="stack">4. Tech-stack decisions</h2>
+<div class="tablewrap"><table>
+<tr><th>Choice</th><th>Why</th></tr>
+<tr><td>Python 3.12 + pydantic v2</td><td>Typed domain models; the same <code>Recipe</code> model generates the JSON schema for the LLM and validates output.</td></tr>
+<tr><td>Anthropic SDK, tool use</td><td>Structured output without free-text parsing. The schema is guidance only, because the checker validates the raw output anyway.</td></tr>
+<tr><td>BM25 over an inverted index</td><td>Inspectable, no infrastructure. A vector DB adds cost and opacity for a 50-row sample.</td></tr>
+<tr><td>Streamlit</td><td>Fastest way to a demo-able UI in pure Python.</td></tr>
+<tr><td>pytest, hypothesis, ruff</td><td>Unit and property tests, lint. Mutation script checks that tests notice broken rules.</td></tr>
+<tr><td>Model names only in <code>config.py</code></td><td>Names change often. A test enforces that no <code>claude-...</code> string appears elsewhere in <code>src/</code> (C-7).</td></tr>
+</table></div>
+
+<h2 id="sdd">5. The spec-driven process</h2>
+<p>Spec first. <code>specs/</code> holds a constitution (principles, stack, layout), a domain model, and for each feature a requirements file, a design and a task list.
+Requirements have numbered acceptance criteria (<code>UI-10</code>, <code>CHK-14</code>, ...). Tests carry <code># covers: ID</code> markers, so every criterion maps to a test.</p>
+<p><strong>Constitution principles:</strong> never trust the LLM on constraints; fail loudly, not silently; deterministic core; explainable methods; small and testable modules.</p>
+
+<h2 id="testing">6. Testing</h2>
+<ul>
+<li><code>python -m pytest</code> runs in about a minute with no network and no API key. The LLM is replaced by a scripted fake (<code>tests/support/fake_llm.py</code>).</li>
+<li><code>tests/adversarial/</code> holds tricky cases, including a zero-false-negatives test for the checker.</li>
+<li><code>tools/mutation_check.py</code> breaks each rule on purpose; the tests must notice.</li>
+<li><code>tests/live/test_live_smoke.py</code> is the only test that calls the real API. Off unless <code>RECIPEGEN_RUN_LIVE=1</code>.</li>
+<li><strong>Limit to admit:</strong> the fake model shows the pipeline works, not how the real model behaves. That is what the evaluation is for.</li>
+</ul>
+
+<h2 id="eval">7. Evaluation and results</h2>
+<p>50 queries frozen before the first real run, given to <code>claude-sonnet-5-5</code> and <code>claude-haiku-5-5</code> through the same pipeline. Metric: how often recipes break
+a checker rule before and after repair, with counts and a 95% interval. Dataset: <strong>SAMPLE, 50 hand-written recipes, not Food.com</strong>.</p>
+<div class="tablewrap"><table>
+<tr><th></th><th>Sonnet run 1</th><th>Sonnet rerun</th><th>Haiku run 1</th><th>Haiku rerun</th></tr>
+<tr><td>Failing first check</td><td>18.5% (39/211)</td><td>13.4% (29/216)</td><td>23.4% (45/192)</td><td>23.1% (45/195)</td></tr>
+<tr><td>Still failing after repair</td><td>0.9% (2/211)</td><td>0.5% (1/216)</td><td>1.0% (2/192)</td><td>0.5% (1/195)</td></tr>
+<tr><td>Delivered recipes that broke a rule</td><td>0 of 113</td><td>0 of 115</td><td>0 of 128</td><td>0 of 125</td></tr>
+</table></div>
+<div class="note">
+<strong>What holds up:</strong> the repair loop fixed 95 to 98% of failures; no delivered recipe broke a rule.<br>
+<strong>What does not:</strong> any ranking of the models. Intervals overlap and identical runs differed by up to 2× in some violation counts, so one sample per query is noisy.<br>
+<strong>Rerun:</strong> run 2 followed a checker vocabulary fix (plain words such as "broccoli florets", "flax egg"). Recipes failing only on an unrecognised ingredient fell from 24 to 5 (Sonnet).
+That fall is not proven to be the fix, since the intervals overlap.<br>
+<strong>Audit:</strong> 20 delivered recipes read; 18 pass, 2 had wrong amounts ("the remaining 1 tsp" after half was used), which the checker cannot see. The verdicts were proposed by Claude and accepted by the project owner, not an independent human review.<br>
+<strong>Cost:</strong> one full run took about 42 minutes and 260 model calls (0.9M tokens in, 0.5M out).
+</div>
+
+<h2 id="limits">8. Limitations and next steps</h2>
+<ul>
+<li>Sample dataset only; results say nothing about real Food.com data.</li>
+<li>The checker measures its own rules, not real-world safety. Ingredient database coverage is finite (unknown items are flagged unverifiable).</li>
+<li>Quantity logic errors ("the remaining 1 tsp") are invisible to the checker.</li>
+<li>One sample per query, so model comparison is inconclusive.</li>
+<li>Streamlit page driven by the test harness with a real key, but not clicked through in a browser.</li>
+<li>Duplicates, not failures, are the main reason a query returns fewer than 3 recipes.</li>
+<li><strong>Next:</strong> independent human audit; prompt change so ingredient names carry no preparation instructions; fix for "remaining {id}" amounts; run on real Food.com data; multiple samples per query.</li>
+</ul>
+
+<h2 id="demo">9. Live demo script (about 5 minutes)</h2>
+<ol>
+<li><code>streamlit run app/streamlit_app.py</code>. It loads with no key.</li>
+<li>Click <strong>Fill in a demo fridge</strong> (messy list, vegetarian, 45 min).</li>
+<li>Point at <strong>What I understood</strong>: green chips are known; <code>tamarind paste</code> is orange, not in the database, and the app says so.</li>
+<li><strong>Generate recipes</strong> (paid call, ask before clicking). Narrate the stages: retrieve, ask model, check, repair.</li>
+<li>Move the <strong>Servings</strong> slider: amounts and shopping list change with no new model call.</li>
+<li>Tick <strong>Skip repair (demo)</strong>, choose vegan, regenerate, and open <strong>Rejected recipes</strong> to show the checker catching a slip with the reason.</li>
+<li>Open <strong>Pipeline trace</strong> for calls, tokens, time.</li>
+</ol>
+<p>No key needed: <code>python -m recipegen.checker demo/bad_vegan.json --diet vegan --max-minutes 30</code> shows the checker rejecting a bad recipe.</p>
+
+<h2 id="glossary">10. Glossary</h2>
+<div class="tablewrap"><table>
+<tr><th>Term</th><th>Meaning</th></tr>
+<tr><td>Grounding</td><td>Giving the model real dataset recipes as inspiration (retrieval), not as copy source.</td></tr>
+<tr><td>BM25</td><td>Ranking function scoring documents by term overlap, weighted by rarity and length.</td></tr>
+<tr><td>Tool use</td><td>Claude API feature to return structured JSON matching a schema.</td></tr>
+<tr><td>Repair loop</td><td>Re-prompt the model with the checker's violations to fix a recipe.</td></tr>
+<tr><td>Fail closed</td><td>When unsure (unknown ingredient), treat as failing, not passing.</td></tr>
+<tr><td>Unverifiable ingredient</td><td>Ingredient not in the database, so its diet tags are unknown.</td></tr>
+<tr><td>Wilson/95% interval</td><td>Range of plausible true rates given the sample size; overlapping intervals mean no proven difference.</td></tr>
+<tr><td>Mutation check</td><td>Deliberately break a rule to confirm tests fail.</td></tr>
+</table></div>
+
+<h2 id="qs">11. Question bank</h2>
+<div class="tools">
+<input type="search" id="q" placeholder="Search questions..." aria-label="Search questions">
+<label><input type="checkbox" id="starOnly"> ★ only</label>
+<button id="openAll" type="button">Expand all</button>
+<button id="closeAll" type="button">Collapse all</button>
+<span class="count" id="count"></span>
+</div>
+
+<div id="bank">
+<details data-star="1"><summary><span class="star">★</span> Why not just ask the LLM to follow the diet?</summary><div class="body">
+Models make confident mistakes: our first-run data shows 13 to 23% of recipes broke at least one rule on first attempt. For allergies that is unacceptable. So the model's output is treated as untrusted input and checked in code.
+<div class="follow"><strong>Follow-up:</strong> <em>Isn't your checker also fallible?</em> Yes. It only knows what its database knows, so unknown ingredients are flagged unverifiable, and allergen diets fail closed. It also cannot see logic errors such as wrong remaining amounts (audit found 2 of 20).</div></div></details>
+
+<details data-star="1"><summary><span class="star">★</span> Explain the architecture in one minute.</summary><div class="body">
+Normalize pantry text → retrieve similar real recipes (BM25) → Claude generates via tool use → Python checker validates each recipe → failures go through a repair loop (max 2) → survivors get a shopping gap computed in Python → Streamlit shows them, with rejected ones listed separately.</div></details>
+
+<details data-star="1"><summary><span class="star">★</span> What does "the LLM proposes, deterministic code disposes" mean here?</summary><div class="body">
+Only the generation step is non-deterministic. Pass/fail, shopping list, scaling and diet rules are pure Python functions with reasons attached to every verdict. The model never gets to certify its own output.</div></details>
+
+<details data-star="1"><summary><span class="star">★</span> How does the repair loop work?</summary><div class="body">
+When the checker finds violations, the pipeline sends the model a repair prompt containing the original recipe and the checker's own messages, and asks for a corrected one. This repeats up to <code>RECIPEGEN_MAX_REPAIRS</code> (default 2). Still failing → discarded (GEN-8), never padded with unverified recipes (GEN-10).
+<div class="follow"><strong>Result:</strong> 95 to 98% of first-check failures were fixed.</div></div></details>
+
+<details data-star="1"><summary><span class="star">★</span> What did your evaluation show, and what can't you claim?</summary><div class="body">
+Claim: after repair, 0 of 481 delivered recipes broke a rule; repair fixed 95 to 98% of failures. Cannot claim: that one model is better (overlapping intervals, run-to-run noise up to 2×), real-world safety, or anything about Food.com (we used a 50-recipe sample).</div></details>
+
+<details data-star="1"><summary><span class="star">★</span> Why a sample dataset instead of Food.com?</summary><div class="body">
+Kaggle needs a login and the project must run offline for demo and tests. The 50 hand-written rows use Food.com's column layout, and every report and the app footer label the dataset as SAMPLE. Setting <code>RECIPEGEN_DATA_PATH</code> switches to the real file with no code change.</div></details>
+
+<details data-star="1"><summary><span class="star">★</span> How do you handle an ingredient your database doesn't know?</summary><div class="body">
+It is shown orange in the UI and flagged <code>UNVERIFIABLE_INGREDIENT</code> in the checker. For allergen diets this fails closed (recipe rejected). For lifestyle diets the severity is lower. "Fail loudly, not silently" is constitution principle 2.</div></details>
+
+<details data-star="1"><summary><span class="star">★</span> How do you know your tests are good?</summary><div class="body">
+Acceptance criteria are numbered and each test carries a <code># covers: ID</code> marker; adversarial cases and a zero-false-negatives test target the checker; <code>tools/mutation_check.py</code> breaks rules on purpose to see whether tests fail. Admit: the fake LLM can't show real-model behaviour.</div></details>
+
+<details><summary>Why BM25 and not embeddings?</summary><div class="body">Inspectable, no infrastructure, enough for a 50-row sample. Retrieval is only inspiration, and correctness doesn't depend on it, since the checker validates the output anyway.</div></details>
+
+<details><summary>Why use tool use for structured output?</summary><div class="body">It returns JSON matching a schema generated from the pydantic <code>Recipe</code> model, avoiding free-text parsing. The schema is guidance only; the checker still validates the raw payload (malformed ones are <code>MALFORMED_RECIPE</code>).</div></details>
+
+<details><summary>How is the shopping list computed?</summary><div class="body"><code>shopping.compute_gap</code> subtracts pantry from recipe ingredients by canonical name, in Python. The model's own shopping suggestions are not used.</div></details>
+
+<details><summary>How does the servings slider work without calling the model?</summary><div class="body"><code>render.py</code> scales amounts, formats them, and expands <code>{id}</code> placeholders in step text, all deterministically. A <code>DANGLING_REF</code> check ensures every placeholder points to a real ingredient.</div></details>
+
+<details><summary>What are the most common failures?</summary><div class="body">Time exceeded, unrecognised ingredients (e.g. "broccoli florets" before the vocabulary fix), forbidden words in step text but not in the ingredient list, malformed references. Remaining ones are mostly preparation instructions written into ingredient names.</div></details>
+
+<details><summary>Why did you rerun the evaluation?</summary><div class="body">The first run revealed the checker was rejecting harmless words ("florets") and not recognising "flax egg". We fixed the vocabulary, changed nothing else, and reran with identical queries, models and prompts. Both runs are committed so the change is auditable.</div></details>
+
+<details><summary>Why is Haiku's rate unchanged while Sonnet's fell?</summary><div class="body">Haiku's remaining failures were mostly other kinds (e.g. text scan and structure errors), not vocabulary. And Sonnet's drop is not proven to be the fix since its intervals overlap.</div></details>
+
+<details><summary>Who audited the 20 recipes?</summary><div class="body">Verdicts were proposed by Claude and accepted by the project owner. It is not an independent human review, and this is stated at the top of <code>audit.md</code>. An independent audit is listed as not done.</div></details>
+
+<details><summary>How do you protect the API key and cost?</summary><div class="body">Key lives in git-ignored <code>.env</code>; missing key gives a clear message, not a stack trace (C-4). The app binds to localhost only. The eval harness needs <code>--yes</code> and prints its plan with a maximum call count first; <code>--dry-run</code> spends nothing.</div></details>
+
+<details><summary>Is this medical advice?</summary><div class="body">No. The disclaimer "Automated check based on a built-in ingredient database. Not medical advice. Always read product labels." is shown with diet and allergen results (C-5).</div></details>
+
+<details><summary>What would you do with more time?</summary><div class="body">Real Food.com data; several samples per query; independent human audit; prompt change for ingredient names and remaining-amount phrasing; browser click-through test of the UI; possibly embeddings for retrieval.</div></details>
+
+<details><summary>Why keep model names in one file?</summary><div class="body">Model IDs change. One place (<code>config.py</code>) means one edit, and a test enforces that no <code>claude-...</code> string appears elsewhere in <code>src/</code>.</div></details>
+
+<details><summary>What is the difference between "pipeline trace" and the report?</summary><div class="body">The trace is per request: model calls, tokens, time and each recipe's fate. The report aggregates 100 (query, model) runs into rates with intervals.</div></details>
+</div>
+
+<footer>Prepared by mahawarrajul-bot · Recipe Generator (AIDS Project 4) · generated from the repository state of 27 Oct 2026.</footer>
+</main>
+<script>
+(function () {
+  var q = document.getElementById('q'), star = document.getElementById('starOnly'), count = document.getElementById('count');
+  var items = Array.prototype.slice.call(document.querySelectorAll('#bank details'));
+  function apply() {
+    var t = q.value.trim().toLowerCase(), n = 0;
+    items.forEach(function (d) {
+      var ok = (!star.checked || d.dataset.star) && (!t || d.textContent.toLowerCase().indexOf(t) !== -1);
+      d.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    count.textContent = n + ' of ' + items.length + ' shown';
+  }
+  q.addEventListener('input', apply); star.addEventListener('change', apply);
+  document.getElementById('openAll').onclick = function () { items.forEach(function (d) { if (d.style.display !== 'none') d.open = true; }); };
+  document.getElementById('closeAll').onclick = function () { items.forEach(function (d) { d.open = false; }); };
+  apply();
+})();
+</script>
+</body>
+</html>
